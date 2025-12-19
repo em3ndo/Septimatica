@@ -1,0 +1,51 @@
+/* 1. Global Page Reset */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background-color: #f0f2f5; /* Light gray background for the page */
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+/* 2. Main App Container */
+.App {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Make sure the app fills the screen */
+}
+
+/* 3. The Header (Mudd Graph Visualizer Title) */
+.App-header {
+  background-color: #333; /* Dark header */
+  color: white;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1); /* Subtle shadow under header */
+}
+
+.App-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+/* 4. The Main Content Area */
+main {
+  flex: 1; /* This pushes the footer down if you add one later */
+  display: flex;
+  justify-content: center; /* Centers the graph canvas horizontally */
+  padding: 2rem;
+}
+
+/* Optional: Make the Canvas Card look distinct */
+svg {
+  background-color: white;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
