@@ -17,6 +17,13 @@ const GraphCanvas = () => {
 
   // 1. Add Node (Click on empty space)
   const handleCanvasClick = (e) => {
+    // SECURITY CHECK: Only allow clicks that hit the SVG background directly.
+    // If the user clicked a node (circle/text), e.target will be that element, 
+    // not the SVG itself. We ignore those clicks here.
+    if (e.target !== e.currentTarget) {
+      return;
+    }
+
     // If we were drawing an edge, cancel it
     if (drawingEdge) {
       setDrawingEdge(null);
@@ -80,11 +87,11 @@ const GraphCanvas = () => {
 
   return (
     <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <h3>Graph Builder: $G=(V, E)$</h3>
+      <h3>Graph Builder: G=(V, E)</h3>
       <p style={{ color: "#666", fontSize: "0.9rem" }}>
-        • <strong>Click empty space</strong> to add a Vertex ($v$).
+        • <strong>Click empty space</strong> to add a Vertex (v) to the set of all vertices (V).
         <br />• <strong>Drag from one vertex to another</strong> to add an Edge
-        ($e$).
+        (e) to the set of all edges (E).
       </p>
 
       <svg
@@ -96,7 +103,7 @@ const GraphCanvas = () => {
           cursor: "crosshair",
           backgroundColor: "#f9f9f9",
         }}
-        onClick={handleCanvasClick}
+        onMouseDown={handleCanvasClick}
         onMouseMove={handleMouseMove}
       >
         {/* 1. Render Existing Edges */}
