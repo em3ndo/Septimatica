@@ -1,0 +1,29 @@
+septimatica/
+└── backend/
+    ├── __init__.py
+    ├── graph.py
+    ├── coloring/
+    │   ├── __init__.py
+    │   ├── greedy.py
+    │   ├── dsatur.py
+    │   └── benchmark.py
+    ├── planarity/
+    │   ├── __init__.py
+    │   ├── hopcroft_tarjan.py
+    │   └── simplify.py
+    ├── layout/
+    │   ├── __init__.py
+    │   ├── force_directed.py
+    │   └── spectral.py
+    ├── utils/
+    │   ├── __init__.py
+    │   ├── graph_io.py
+    │   ├── adjacency.py
+    │   └── profiler.py
+    ├── api.py
+    └── tests/
+        ├── __init__.py
+        ├── test_graph.py
+        ├── test_coloring.py
+        ├── test_planarity.py
+        ├── test_layout.py
