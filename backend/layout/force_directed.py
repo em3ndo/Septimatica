@@ -51,4 +51,3 @@ def force_directed_layout(graph, iterations=100, width=500, height=500):
             )
 
     return pos
-

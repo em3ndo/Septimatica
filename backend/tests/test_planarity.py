@@ -1,5 +1,5 @@
 from ..graph import Graph
-from ..planarity import optimized_planarity
+from ..planarity import is_planar
 
 def test_planarity_k5():
     g = Graph()
@@ -8,7 +8,7 @@ def test_planarity_k5():
             g.add_edge(i, j)
 
     try:
-        p = optimized_planarity(g)
+        p = is_planar(g)
     except NotImplementedError:
         p = None
 
