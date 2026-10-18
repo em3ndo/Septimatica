@@ -30,19 +30,13 @@ def contract_degree_two_vertices(graph):
 
 def has_parallel_or_self_edges(graph):
     """
-    Detects:
-    - self loops (u,u)
-    - parallel edges (multiple edges between same u,v)
+    Detect unsupported self-loops. Graph uses sets, so parallel edges cannot
+    exist and the two orientations of an undirected edge are not duplicates.
     """
-    edge_set = set()
     for u in graph.nodes():
         for v in graph.neighbors(u):
             if u == v:
                 return True
-            if (u, v) in edge_set:
-                return True
-            edge_set.add((u, v))
-            edge_set.add((v, u))
     return False
 
 def simplify_graph(graph):
@@ -50,7 +44,7 @@ def simplify_graph(graph):
     Applies all simplifications before planarity testing.
     """
     if has_parallel_or_self_edges(graph):
-        return False  # automatically non-planar
+        return False  # unsupported input; not a non-planarity verdict
 
     remove_degree_one_vertices(graph)
     contract_degree_two_vertices(graph)

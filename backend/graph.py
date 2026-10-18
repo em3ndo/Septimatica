@@ -38,7 +38,7 @@ class Graph:
 
     def _num_possible_edges(self):
         n = len(self._nodes)
-        return n * (n - 1)
+        return n * (n - 1) // 2
 
     def density(self):
         """Return the edge density of the graph."""
@@ -145,6 +145,8 @@ class Graph:
         self._nodes.remove(node)
 
         self._ensure_representation()
+        if self._use_matrix:
+            self._rebuild_matrix()
 
     # ----------------------------------------------------------------------
     # Queries

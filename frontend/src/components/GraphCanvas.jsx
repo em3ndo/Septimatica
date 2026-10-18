@@ -1,183 +1,87 @@
-import React, { useState, useRef } from "react";
+import { useEffect, useRef, useState } from 'react'
 
-const GraphCanvas = () => {
-  // --- STATE MANAGEMENT ---
-  // These represent G = (V, E)
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
+const palette = ['#225fbd','#d15f31','#26816c','#9b5bb5','#b88c14','#d74980','#58798e','#6863cc']
+export default function GraphCanvas({graph, onChange, onMoveStart, mode, result}) {
+  const [start,setStart]=useState(null)
+  const [view,setView]=useState({x:0,y:0,w:800,h:520})
+  const svg=useRef(null), gesture=useRef(null), camera=useRef(view)
+  const get=id=>graph.nodes.find(n=>n.id===id)
+  const point=e=>new DOMPoint(e.clientX,e.clientY).matrixTransform(svg.current.getScreenCTM().inverse())
+  const updateView=next=>{camera.current=next;setView(next)}
 
-  // Interaction State
-  const [drawingEdge, setDrawingEdge] = useState(null); // Stores the starting node ID
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 }); // For the temporary line
-
-  // Refs for tracking unique IDs
-  const nextNodeId = useRef(1);
-
-  // --- EVENT HANDLERS ---
-
-  // 1. Add Node (Click on empty space)
-  const handleCanvasClick = (e) => {
-    // SECURITY CHECK: Only allow clicks that hit the SVG background directly.
-    // If the user clicked a node (circle/text), e.target will be that element, 
-    // not the SVG itself. We ignore those clicks here.
-    if (e.target !== e.currentTarget) {
-      return;
+  // A non-passive wheel listener prevents page scrolling only over the canvas.
+  useEffect(()=>{
+    const element=svg.current
+    const wheel=e=>{
+      e.preventDefault()
+      const old=camera.current
+      const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(element.getScreenCTM().inverse())
+      const width=Math.max(60,Math.min(1e7,old.w*Math.exp(Math.max(-1,Math.min(1,e.deltaY*.002)))))
+      const ratio=width/old.w
+      const next={x:p.x-(p.x-old.x)*ratio,y:p.y-(p.y-old.y)*ratio,w:width,h:width*.65}
+      camera.current=next;setView(next)
     }
+    element.addEventListener('wheel',wheel,{passive:false})
+    return()=>element.removeEventListener('wheel',wheel)
+  },[])
 
-    // If we were drawing an edge, cancel it
-    if (drawingEdge) {
-      setDrawingEdge(null);
-      return;
-    }
-
-    // Get coordinates relative to the SVG container
-    const svgRect = e.target.getBoundingClientRect();
-    const x = e.clientX - svgRect.left;
-    const y = e.clientY - svgRect.top;
-
-    const newNode = {
-      id: nextNodeId.current++,
-      x,
-      y,
-    };
-
-    setNodes([...nodes, newNode]);
-  };
-
-  // 2. Start Edge (Mouse Down on a Node)
-  const handleNodeMouseDown = (e, nodeId) => {
-    e.stopPropagation(); // Prevent canvas click
-    setDrawingEdge(nodeId);
-  };
-
-  // 3. Complete Edge (Mouse Up on a different Node)
-  const handleNodeMouseUp = (e, targetNodeId) => {
-    e.stopPropagation();
-
-    if (drawingEdge && drawingEdge !== targetNodeId) {
-      // Check if edge already exists to prevent duplicates
-      const exists = edges.some(
-        (edge) =>
-          (edge.source === drawingEdge && edge.target === targetNodeId) ||
-          (edge.source === targetNodeId && edge.target === drawingEdge)
-      );
-
-      if (!exists) {
-        setEdges([...edges, { source: drawingEdge, target: targetNodeId }]);
+  function zoom(factor) {
+    const w=Math.max(60,Math.min(1e7,view.w*factor)),h=w*.65
+    updateView({x:view.x+(view.w-w)/2,y:view.y+(view.h-h)/2,w,h})
+  }
+  function fit() {
+    if(!graph.nodes.length){updateView({x:0,y:0,w:800,h:520});return}
+    const xs=graph.nodes.map(n=>n.x),ys=graph.nodes.map(n=>n.y)
+    const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys)
+    const w=Math.max(250,(maxX-minX)*1.3,(maxY-minY)*2),h=w*.65
+    updateView({x:(minX+maxX-w)/2,y:(minY+maxY-h)/2,w,h})
+  }
+  function select(id) {
+    if(mode==='erase') onChange({nodes:graph.nodes.filter(n=>n.id!==id),edges:graph.edges.filter(e=>e.source!==id&&e.target!==id)})
+    else if(mode==='edge') {
+      if(start===null||!get(start))setStart(id)
+      else {
+        if(start!==id&&!graph.edges.some(e=>(e.source===start&&e.target===id)||(e.source===id&&e.target===start)))onChange({...graph,edges:[...graph.edges,{source:start,target:id}]})
+        setStart(null)
       }
     }
-    setDrawingEdge(null);
-  };
-
-  // 4. Track Mouse (For drawing the temporary line)
-  const handleMouseMove = (e) => {
-    if (drawingEdge) {
-      const svgRect = e.currentTarget.getBoundingClientRect();
-      setMousePos({
-        x: e.clientX - svgRect.left,
-        y: e.clientY - svgRect.top,
-      });
-    }
-  };
-
-  // --- RENDERING HELPERS ---
-
-  // Find node object by ID to get coordinates for edges
-  const getNode = (id) => nodes.find((n) => n.id === id);
-
-  return (
-    <div style={{ padding: "20px", fontFamily: "sans-serif" }}>
-      <h3>Graph Builder: G=(V, E)</h3>
-      <p style={{ color: "#666", fontSize: "0.9rem" }}>
-        • <strong>Click empty space</strong> to add a Vertex (v) to the set of all vertices (V).
-        <br />• <strong>Drag from one vertex to another</strong> to add an Edge
-        (e) to the set of all edges (E).
-      </p>
-
-      <svg
-        width="800"
-        height="500"
-        style={{
-          border: "2px solid #333",
-          borderRadius: "8px",
-          cursor: "crosshair",
-          backgroundColor: "#f9f9f9",
-        }}
-        onMouseDown={handleCanvasClick}
-        onMouseMove={handleMouseMove}
-      >
-        {/* 1. Render Existing Edges */}
-        {edges.map((edge, index) => {
-          const source = getNode(edge.source);
-          const target = getNode(edge.target);
-          return (
-            <line
-              key={index}
-              x1={source.x}
-              y1={source.y}
-              x2={target.x}
-              y2={target.y}
-              stroke="#333"
-              strokeWidth="2"
-            />
-          );
-        })}
-
-        {/* 2. Render Temporary Edge (Visual feedback while dragging) */}
-        {drawingEdge && (
-          <line
-            x1={getNode(drawingEdge).x}
-            y1={getNode(drawingEdge).y}
-            x2={mousePos.x}
-            y2={mousePos.y}
-            stroke="#999"
-            strokeWidth="2"
-            strokeDasharray="5,5" // Dashed line for "temporary" feel
-          />
-        )}
-
-        {/* 3. Render Vertices (Nodes) */}
-        {nodes.map((node) => (
-          <g
-            key={node.id}
-            transform={`translate(${node.x}, ${node.y})`}
-            onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-            onMouseUp={(e) => handleNodeMouseUp(e, node.id)}
-            style={{ cursor: "pointer" }}
-          >
-            {/* The visual circle */}
-            <circle r="20" fill="white" stroke="#d63384" strokeWidth="3" />
-
-            {/* Label (Vertex ID) */}
-            <text
-              textAnchor="middle"
-              dy=".3em"
-              fill="#333"
-              fontWeight="bold"
-              pointerEvents="none" // Allows clicking "through" text to the circle
-            >
-              {node.id}
-            </text>
-          </g>
-        ))}
-      </svg>
-
-      {/* Debug View: Useful for you to see the Adjacency List building up */}
-      <div style={{ marginTop: "20px", background: "#eee", padding: "10px" }}>
-        <strong>Current State (Adjacency List):</strong>
-        <pre>
-          {JSON.stringify(
-            {
-              V: nodes.map((n) => n.id),
-              E: edges,
-            },
-            null,
-            2
-          )}
-        </pre>
-      </div>
-    </div>
-  );
-};
-
-export default GraphCanvas;
+  }
+  const planar=result?.topic==='planarity'?result.data.planar:undefined
+  const colors=result?.data.colors||{}
+  const walk=result?.topic==='eulerian'?result.data.walk:[]
+  const scale=view.w/800
+  return <div className="canvas-wrap"><svg ref={svg} className={`canvas mode-${mode}`} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} aria-label="Interactive graph canvas" role="group" tabIndex="0"
+    onKeyDown={e=>{if(e.key==='Escape')setStart(null);if(e.target!==e.currentTarget)return;const d=view.w*.1;const shifts={ArrowLeft:[-d,0],ArrowRight:[d,0],ArrowUp:[0,-d],ArrowDown:[0,d]};if(shifts[e.key]){e.preventDefault();updateView({...view,x:view.x+shifts[e.key][0],y:view.y+shifts[e.key][1]})}}}
+    onPointerDown={e=>{
+      if(e.button===1||e.shiftKey||mode==='pan'){
+        e.preventDefault();gesture.current={kind:'pan',x:e.clientX,y:e.clientY,view:{...view}};e.currentTarget.setPointerCapture(e.pointerId);return
+      }
+      if(e.button!==0||e.target!==e.currentTarget||mode!=='vertex')return
+      const p=point(e),id=Math.max(-1,...graph.nodes.map(n=>n.id))+1
+      onChange({...graph,nodes:[...graph.nodes,{id,x:p.x,y:p.y}]})
+    }}
+    onPointerMove={e=>{
+      const g=gesture.current;if(!g)return
+      if(g.kind==='pan'){
+        const rect=svg.current.getBoundingClientRect(),s=g.view.w/rect.width
+        updateView({...g.view,x:g.view.x-(e.clientX-g.x)*s,y:g.view.y-(e.clientY-g.y)*s})
+      }else{const p=point(e);onChange({...graph,nodes:graph.nodes.map(n=>n.id===g.id?{...n,x:p.x,y:p.y}:n)},true)}
+    }} onPointerUp={()=>{gesture.current=null}} onPointerCancel={()=>{gesture.current=null}}>
+    <defs><pattern id="dots" width={24*scale} height={24*scale} patternUnits="userSpaceOnUse"><circle cx={scale} cy={scale} r={scale} fill="#d9ddd5"/></pattern></defs>
+    <rect x={view.x} y={view.y} width={view.w} height={view.h} fill="url(#dots)" pointerEvents="none"/>
+    {!graph.nodes.length&&<text x={view.x+view.w/2} y={view.y+view.h/2} fontSize={16*scale} textAnchor="middle" fill="#737e75" pointerEvents="none">Click anywhere to plant your first vertex.</text>}
+    {graph.edges.map((e,i)=>{const a=get(e.source),b=get(e.target);const step=walk?.findIndex(([u,v])=>(u===a.id&&v===b.id)||(u===b.id&&v===a.id));return <g key={`${e.source}-${e.target}`} onClick={ev=>{if(mode==='erase'&&!ev.shiftKey)onChange({...graph,edges:graph.edges.filter((_,j)=>j!==i)})}}>
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={16*scale}/>
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={planar===false?'#b64c44':planar?'#26816c':'#87958b'} strokeWidth={2.5*scale}/>
+      {step>=0&&<text x={(a.x+b.x)/2} y={(a.y+b.y)/2-5*scale} fontSize={13*scale} fill="#245d48">{step+1}</text>}
+    </g>})}
+    {graph.nodes.map(n=><g key={n.id} role="button" tabIndex="0" aria-label={`Vertex ${n.id}`} transform={`translate(${n.x},${n.y}) scale(${scale})`}
+      onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(n.id)}}}
+      onPointerDown={e=>{if(mode==='pan'||e.shiftKey||e.button===1)return;e.stopPropagation();if(mode==='move'){onMoveStart();gesture.current={kind:'node',id:n.id};e.currentTarget.setPointerCapture(e.pointerId)}}}
+      onClick={e=>{if(!e.shiftKey)select(n.id)}}>
+      <circle r="19" fill={colors[n.id]!==undefined?palette[colors[n.id]%palette.length]:'#fffcf5'} stroke={mode==='edge'&&start===n.id?'#d49e3b':planar===false?'#b64c44':'#23634f'} strokeWidth="3"/>
+      <text textAnchor="middle" dy="5" fontSize="13" fontWeight="700" fill={colors[n.id]!==undefined?'white':'#243c30'} pointerEvents="none">{n.id}</text>
+      {colors[n.id]!==undefined&&<text textAnchor="middle" dy="35" fontSize="11" fill="#344b40">c{colors[n.id]+1}</text>}
+    </g>)}
+  </svg><div className="camera-controls"><button aria-label="Zoom in" onClick={()=>zoom(.8)}>+</button><button aria-label="Zoom out" onClick={()=>zoom(1.25)}>−</button><button onClick={fit}>Fit graph</button><button onClick={()=>updateView({x:0,y:0,w:800,h:520})}>Reset view</button><span>{Math.round(800/view.w*100)}%</span></div></div>
+}

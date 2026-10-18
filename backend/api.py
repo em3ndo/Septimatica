@@ -5,6 +5,7 @@ from .coloring.greedy import greedy_coloring
 from .coloring.dsatur import dsatur_coloring
 from .planarity.hopcroft_tarjan import is_planar
 from .layout.force_directed import force_directed_layout
+from .layout.spectral import spectral_layout
 
 class SeptimaticaAPI:
 
@@ -38,6 +39,8 @@ class SeptimaticaAPI:
         g = self.graphs[graph_id]
         if algorithm == "force":
             return force_directed_layout(g)
+        if algorithm == "spectral":
+            return spectral_layout(g)
         raise ValueError("Unknown layout algorithm")
 
 # Global instance

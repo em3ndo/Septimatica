@@ -8,6 +8,8 @@ from ..coloring.greedy import greedy_coloring
 def generate_random_graph(n, p):
     G = Graph()
     for i in range(n):
+        G.add_node(i)
+    for i in range(n):
         for j in range(i+1, n):
             if random.random() < p:
                 G.add_edge(i, j)
@@ -29,6 +31,7 @@ def benchmark_dsatur_vs_networkx():
 
             # NetworkX DSATUR
             NX = nx.Graph(G.edges())
+            NX.add_nodes_from(G.nodes())
             start = time.time()
             nx.coloring.greedy_color(NX, strategy="saturation_largest_first")
             print("NetworkX DSATUR:", round(time.time() - start, 4), "seconds")

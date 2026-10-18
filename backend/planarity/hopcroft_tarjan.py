@@ -1,16 +1,9 @@
-# backend/planarity/hopcroft_tarjan.py
+"""Compatibility module: NetworkX's LR test replaces the unfinished HT skeleton."""
+import networkx as nx
 
-"""
-This file will contain Hopcroft–Tarjan planarity testing algorithm.
-For now, we provide the skeleton for you to fill in.
-"""
 
 def is_planar(graph):
-    """
-    Hopcroft–Tarjan planarity test (linear time).
-    TODO: implement full algorithm.
-    """
-    # TODO: implement DFS tree construction
-    # TODO: implement biconnected decomposition
-    # TODO: perform embedding consistency checking
-    raise NotImplementedError("Planarity algorithm not yet implemented.")
+    g = nx.Graph()
+    g.add_nodes_from(graph.nodes())
+    g.add_edges_from(graph.edges())
+    return nx.check_planarity(g)[0]

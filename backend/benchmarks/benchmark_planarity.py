@@ -1,7 +1,7 @@
 import time
 import networkx as nx
 from ..graph import Graph
-from ..planarity.my_optimized_planarity import optimized_planarity
+from ..planarity import is_planar
 
 def benchmark_planarity():
     # classic planar graph
@@ -12,7 +12,7 @@ def benchmark_planarity():
 
     try:
         start = time.time()
-        optimized_planarity(G)
+        is_planar(G)
         print("Septimatica planarity:", time.time() - start)
     except NotImplementedError:
         print("Septimatica planarity not implemented yet")
